@@ -2,7 +2,7 @@ import streamlit as st
 import random
 from fractions import Fraction
 
-st.set_page_config(page_title="GSAT 계산 연습", layout="wide")
+st.set_page_config(page_title="GSAT 비타민", layout="wide")
 
 # 문제 생성 함수들
 def subtraction_problem():
@@ -36,7 +36,7 @@ def estimate_problem():
     p = round(random.uniform(30, 90), 2)
     return f"{a}의 약 {p}%는?", str(round(a * p / 100, -2))
 
-# 문제 생성 묶음 함수
+# 문제 전체 생성
 def generate_all_problems():
     problems = {}
     for i in range(10):
@@ -47,50 +47,60 @@ def generate_all_problems():
         problems[f"estimate_{i}"] = estimate_problem()
     return problems
 
-# 초기화 및 문제 로딩
-if "problems" not in st.session_state or st.button("🔄 다시 풀기"):
+# 초기 상태 설정
+if "submitted" not in st.session_state:
+    st.session_state.submitted = False
+if "problems" not in st.session_state:
     st.session_state.problems = generate_all_problems()
+if "user_inputs" not in st.session_state:
     st.session_state.user_inputs = {}
 
-# 좌우 컬럼 구성
-left_col, right_col = st.columns(2)
+# 화면 전환: 문제 풀이 → 채점 결과
+if not st.session_state.submitted:
+    st.title("🧮 GSAT 비타민")
+    left_col, right_col = st.columns(2)
 
-with left_col:
-    st.header("🟦 뺄셈 문제")
-    for i in range(9):
-        key = f"sub_{i}"
-        q, a = st.session_state.problems[key]
-        st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] {q}", key=key)
+    with left_col:
+        st.header("🟦 뺄셈 문제")
+        for i in range(9):
+            key = f"sub_{i}"
+            q, a = st.session_state.problems[key]
+            st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] {q}", key=key)
 
-    st.header("🟩 퍼센트 계산")
-    for i in range(9):
-        key = f"percent_{i}"
-        q, a = st.session_state.problems[key]
-        st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] {q}", key=key)
+        st.header("🟩 퍼센트 계산")
+        for i in range(9):
+            key = f"percent_{i}"
+            q, a = st.session_state.problems[key]
+            st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] {q}", key=key)
 
-with right_col:
-    st.header("🟧 분수 비교")
-    for i in range(6):
-        key = f"fraction_{i}"
-        q, a = st.session_state.problems[key]
-        st.latex(q)
-        st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] 대소 비교", key=key)
+    with right_col:
+        st.header("🟧 분수 비교")
+        for i in range(6):
+            key = f"fraction_{i}"
+            q, a = st.session_state.problems[key]
+            st.latex(q)
+            st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] 대소 비교", key=key)
 
-    st.header("🟥 곱셈 비교")
-    for i in range(5):
-        key = f"mult_{i}"
-        q, a = st.session_state.problems[key]
-        st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] {q}", key=key)
+        st.header("🟥 곱셈 비교")
+        for i in range(5):
+            key = f"mult_{i}"
+            q, a = st.session_state.problems[key]
+            st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] {q}", key=key)
 
-    st.header("🟨 근사값 계산")
-    for i in range(1):
-        key = f"estimate_{i}"
-        q, a = st.session_state.problems[key]
-        st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] {q}", key=key)
+        st.header("🟨 근사값 계산")
+        for i in range(1):
+            key = f"estimate_{i}"
+            q, a = st.session_state.problems[key]
+            st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] {q}", key=key)
 
-# 제출 버튼
-if st.button("📤 제출하기"):
-    st.subheader("📊 채점 결과")
+    # 제출 버튼 → 상태 변경
+    if st.button("📤 제출하기"):
+        st.session_state.submitted = True
+        st.rerun()
+
+else:
+    # 채점 화면
+    st.title("📊 채점 결과")
     correct = 0
     total = len(st.session_state.problems)
 
@@ -101,4 +111,12 @@ if st.button("📤 제출하기"):
             correct += 1
         else:
             st.error(f"[{key}] ❌ 오답 | 정답: {answer}")
+
     st.info(f"🎯 총 정답: {correct} / {total} ({round(correct/total*100, 1)}%)")
+
+    # 다시풀기 버튼 → 상태 초기화 및 새 문제 로딩
+    if st.button("🔄 다시 풀기"):
+        st.session_state.submitted = False
+        st.session_state.problems = generate_all_problems()
+        st.session_state.user_inputs = {}
+        st.rerun()
