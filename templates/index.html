@@ -1,0 +1,41 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Jul 20 16:17:37 2025
+
+@author: URCho
+"""
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GSAT 계산연습</title>
+</head>
+<body>
+    <h1>GSAT 수리영역 계산 연습</h1>
+    <p id="question">{{ question }}</p>
+    <input type="number" id="answer" />
+    <button onclick="submitAnswer()">제출</button>
+    <p id="result"></p>
+
+    <script>
+        function submitAnswer() {
+            const answer = document.getElementById('answer').value;
+            const question = document.getElementById('question').innerText;
+
+            fetch('/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answer: answer, question: question })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.correct) {
+                    document.getElementById('result').innerText = "정답입니다!";
+                } else {
+                    document.getElementById('result').innerText = `틀렸습니다. 정답은 ${data.correct_answer}입니다.`;
+                }
+            });
+        }
+    </script>
+</body>
+</html>
