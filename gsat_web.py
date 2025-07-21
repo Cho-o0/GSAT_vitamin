@@ -16,7 +16,8 @@ def percent_problem():
     return f"{a}의 {b}%는?", str(round(a * b / 100, 2))
 
 def fraction_compare_problem():
-    num1, den1 = random.randint(10, 500), random.randint(50, 1000)
+    num1 = random.randint(10, 500)
+    den1 = random.randint(50, 1000)
     num2 = random.randint(10, 500)
     den2 = random.randint(50, 1000)
     f1 = Fraction(num1, den1)
@@ -41,6 +42,7 @@ def estimate_problem():
     p = round(random.uniform(30, 90), 2)
     return f"{a}의 약 {p}%는?", str(round(a * p / 100, -2))
 
+# 문제 전체 생성
 def generate_all_problems():
     problems = {}
     for i in range(9):
@@ -54,7 +56,7 @@ def generate_all_problems():
         problems[f"estimate_{i}"] = estimate_problem()
     return problems
 
-# 초기 상태
+# 초기 상태 설정
 if "submitted" not in st.session_state:
     st.session_state.submitted = False
 if "problems" not in st.session_state:
@@ -62,73 +64,81 @@ if "problems" not in st.session_state:
 if "user_inputs" not in st.session_state:
     st.session_state.user_inputs = {}
 
-# 화면 출력
+st.title("🧮 GSAT 비타민")
+left_col, right_col = st.columns(2)
+
+# 채점 카운트
+correct_count = 0
+
+# 입력/채점 렌더링 함수
+def render_problem(key, q_text, answer, label):
+    user_input = st.session_state.user_inputs.get(key, "").strip()
+
+    if not st.session_state.submitted:
+        st.session_state.user_inputs[key] = st.text_input(f"[{label}] {q_text}", key=key)
+    else:
+        is_correct = user_input == answer
+        bg_color = "#d4f4d2" if is_correct else "#ffd6d6"
+        icon = "✅" if is_correct else "❌"
+
+        st.markdown(f"""
+            <div style="margin-bottom:4px;"><b>{icon} [{label}] {q_text}</b></div>
+            <input type="text" value="{user_input}" disabled
+                style="background-color:{bg_color}; padding:8px; border:1px solid #ccc; width:100%; font-size:16px;">
+            {f'<div style="color:#d00; margin-top:4px;">정답: {answer}</div>' if not is_correct else ''}
+            <hr style="margin-top:10px;">
+        """, unsafe_allow_html=True)
+
+        return 1 if is_correct else 0
+    return 0
+
+# 왼쪽 영역
+with left_col:
+    st.header("🟦 뺄셈 문제")
+    for i in range(9):
+        key = f"sub_{i}"
+        q, a = st.session_state.problems[key]
+        correct_count += render_problem(key, q, a, i+1)
+
+    st.header("🟩 퍼센트 계산")
+    for i in range(9):
+        key = f"percent_{i}"
+        q, a = st.session_state.problems[key]
+        correct_count += render_problem(key, q, a, i+1)
+
+# 오른쪽 영역
+with right_col:
+    st.header("🟧 분수 비교")
+    for i in range(6):
+        key = f"fraction_{i}"
+        q, a = st.session_state.problems[key]
+        st.latex(q)
+        correct_count += render_problem(key, "대소 비교", a, i+1)
+
+    st.header("🟥 곱셈 비교")
+    for i in range(5):
+        key = f"mult_{i}"
+        q, a = st.session_state.problems[key]
+        correct_count += render_problem(key, q, a, i+1)
+
+    st.header("🟨 근사값 계산")
+    for i in range(1):
+        key = f"estimate_{i}"
+        q, a = st.session_state.problems[key]
+        correct_count += render_problem(key, q, a, i+1)
+
+# 제출 또는 결과 요약
 if not st.session_state.submitted:
-    st.title("🧮 GSAT 비타민")
-    left_col, right_col = st.columns(2)
-
-    with left_col:
-        st.header("🟦 뺄셈 문제")
-        for i in range(9):
-            key = f"sub_{i}"
-            q, a = st.session_state.problems[key]
-            st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] {q}", key=key)
-
-        st.header("🟩 퍼센트 계산")
-        for i in range(9):
-            key = f"percent_{i}"
-            q, a = st.session_state.problems[key]
-            st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] {q}", key=key)
-
-    with right_col:
-        st.header("🟧 분수 비교")
-        for i in range(6):
-            key = f"fraction_{i}"
-            q, a = st.session_state.problems[key]
-            st.latex(q)
-            st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] 대소 비교", key=key)
-
-        st.header("🟥 곱셈 비교")
-        for i in range(5):
-            key = f"mult_{i}"
-            q, a = st.session_state.problems[key]
-            st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] {q}", key=key)
-
-        st.header("🟨 근사값 계산")
-        for i in range(1):
-            key = f"estimate_{i}"
-            q, a = st.session_state.problems[key]
-            st.session_state.user_inputs[key] = st.text_input(f"[{i+1}] {q}", key=key)
-
     if st.button("📤 제출하기"):
         st.session_state.submitted = True
         st.rerun()
-
 else:
-    st.title("📊 채점 결과")
-    correct = 0
     total = len(st.session_state.problems)
-
-    for key, (q, answer) in st.session_state.problems.items():
-        user = st.session_state.user_inputs.get(key, "").strip()
-        is_correct = user == answer
-        bg_color = "#d4f4d2" if is_correct else "#ffd6d6"
-        icon = "✅" if is_correct else "❌"
-        label = f"{icon} {key}"
-
-        # 렌더링
-        st.markdown(f"""
-            <div style="margin-bottom:6px;"><b>{label}</b><br>{q}</div>
-            <input type="text" value="{user}" disabled
-                style="background-color:{bg_color}; padding:8px; border:1px solid #ccc; width:100%; font-size:16px;">
-            {f'<div style="color:#d00; margin-top:6px;">정답: {answer}</div>' if not is_correct else ''}
-            <hr style="margin-top:12px; margin-bottom:12px;">
-        """, unsafe_allow_html=True)
-
-        if is_correct:
-            correct += 1
-
-    st.info(f"🎯 총 정답: {correct} / {total} ({round(correct/total*100, 1)}%)")
+    st.markdown(f"""
+    <div style="background-color:#f0f8ff; padding:12px; border-radius:6px; border:1px solid #ccc;">
+        <b>🎯 총 정답: {correct_count} / {total} ({round(correct_count/total*100, 1)}%)</b>
+    </div>
+    """, unsafe_allow_html=True)
 
     if st.button("🔄 다시 풀기"):
         st.session_state.submitted = False
